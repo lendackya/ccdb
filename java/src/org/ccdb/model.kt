@@ -408,28 +408,22 @@ public enum class CellTypes{
 /**
  * Created by Andrew Lendacky on 12/21/16.
  */
-public class ConstantsEntry( private val provider:JDBCProvider) {
+class ConstantsEntry( private val provider:JDBCProvider) {
 
     public var runMax:Int = 0
-        //get() { return this.runMax }
 
     public var runMin:Int = 0
-        //get() { return this.runMin }
 
     public var variation:String = ""
-        //get() { return this.variation }
 
     public var parentVariation:String = ""
-        //get() { return this.parentVariation }
-
 
     /**
      * Gets all variations entries for table at all runs, and all variations.
      *
      * @param table the table path name
      *
-     * @return returns a Vector containing the entries for the given table. Returns null if the provider is not
-     * connected.
+     * @return returns a Vector containing the entries for the given table.
      */
      public fun getEntries(table:String):LinkedList<ConstantsEntry>{
 
@@ -448,6 +442,14 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
         }
     }
 
+    /**
+     * Gets all variations entries for table at all runs, and all variations.
+     *
+     * @param table the table path name
+     * @param variationByName name of the variation in the table
+     *
+     * @return returns a Vector containing the entries for the given table for the specified variation.
+     */
     public fun getEntries(table: String, variationByName: String):LinkedList<ConstantsEntry>{
 
         var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
@@ -458,6 +460,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
             //returns all variation entries for the table that will apply to this run
             entries = this.getEntries(table)
 
+            // check if the variation name matches
             for (entry in entries){
                 if (entry.variation == variationByName) { variationEntries.add(entry) }
             }
@@ -476,8 +479,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
      * @param table the table path name
      * @param run the run of the table
      *
-     * @return returns a Vector containing the entries for the given table and run. Returns null if the provider is not
-     * connected.
+     * @return returns a Vector containing the entries for the given table and run.
      */
     public fun getEntries(table:String, run:Int):LinkedList<ConstantsEntry>{
 
@@ -489,6 +491,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
             //returns all variation entries for the table that will apply to this run
             entries = this.getEntries(table)
 
+            // check if the run falls within the run range
             for (entry in entries){
                 if (run <= entry.runMax && run >= entry.runMin){ runEntries.add(entry) }
             }
@@ -502,13 +505,13 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
     }
 
     /**
-     * Gets the given variations for table applying to the given run.
+     * Gets the given variations for table applying where a specified run falls within the variations run range
      *
      * @param table the table path name
      * @param run the run of the table
      * @param variationByName a string corresponding to the name of the variation
      *
-     * @return returns a Vector containing the entries for the given table, run, and variation. Returns null if the provider is not
+     * @return returns a Vector containing the entries for the given table, run, and variation.
      * connected.
      */
     public fun getEntries(table:String, variationByName:String, run:Int):LinkedList<ConstantsEntry>{
@@ -522,6 +525,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
             entries = this.getEntries(table, run)
             val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
+            // check if the variation name matches
             for (entry in entries){
                 if (entry.variation == variationByName){ variationEntries.add(entry) }
             }
@@ -534,6 +538,16 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
         }
     }
 
+    /**
+     * Gets the given variations for a table that matches the run min and run max
+     *
+     * @param table the table path name
+     * @param runMin the min run range of the table
+     * @param runMax the max run range of the table
+     * @param variationByName a string corresponding to the name of the variation
+     *
+     * @return returns a Vector containing the entries for the given table and variation, matching the specified run ranges.
+     */
     public fun getEntries(table:String, variationByName: String, runMin:Int, runMax:Int):LinkedList<ConstantsEntry>{
 
         var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
@@ -545,6 +559,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
             entries = this.getEntries(table, variationByName)
             val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
+            // check if the run min and max match
             for (entry in entries){
                 if (entry.runMin == runMin && entry.runMax == runMax){ runEntries.add(entry) }
             }
@@ -561,9 +576,7 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
     public fun printConstantEntryInfo(){
 
         println("Name: " + this.variation)
-
         if (this.parentVariation != null) { println("Parent Variation: " + this.parentVariation) }
-
         println("Run Min: " + this.runMin)
         println("Run Max: " + this.runMax)
     }
