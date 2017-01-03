@@ -1,5 +1,6 @@
 package org.jlab.ccdb
 
+import com.sun.tools.internal.jxc.ap.Const
 import java.util.HashMap
 import java.util.Vector
 import java.sql.Connection
@@ -7,6 +8,7 @@ import java.sql.PreparedStatement
 import java.util.Date
 import java.sql.SQLException
 import java.sql.ResultSet
+import java.util.LinkedList
 
 import org.jlab.ccdb.helpers.extractObjectName
 import org.jlab.ccdb.helpers.extractDirectory
@@ -403,7 +405,6 @@ open class JDBCProvider(val connectionString: String) {
         return columns
     }
 
-
     /**
      * Returns assignment object with is a class that holds CCDB data
      */
@@ -488,6 +489,141 @@ open class JDBCProvider(val connectionString: String) {
         }
 
         return assignment
+    }
+
+    private fun getRunRangeIds(table:String):LinkedList<Int>{
+
+        val entries:LinkedList<Int> = LinkedList<Int>()
+
+        // query to get all the variations in the table
+        val query:String = "SELECT DISTINCT `assignments`.`runRangeId` AS `runId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ?"
+
+        var prs:PreparedStatement = connection!!.prepareStatement(query)
+
+        prs.setInt(1, getTypeTable(table).id)
+        val results:ResultSet = prs.executeQuery()
+
+
+        while (results.next()){
+
+            //println(results.getInt("runId"))
+            entries.add(results.getInt("runId"))
+        }
+
+        return entries
+    }
+
+    public fun getConstantEntries(table:String):LinkedList<ConstantsEntry>{
+
+        val entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // query to get all the variations in the table
+        var varQuery:String = "SELECT DISTINCT `assignments`.`variationId` AS `varId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? ORDER BY `assignments`.`created` DESC"
+
+        var varPrs:PreparedStatement = connection!!.prepareStatement(varQuery)
+
+        val runRangeIds:LinkedList<Int> = getRunRangeIds(table)
+        varPrs.setInt(1, getTypeTable(table).id)
+
+        // go through each run ID
+        for (ids in runRangeIds ){
+
+            // get variation ID for the given run ID
+            varPrs.setInt(2, ids)
+            var varResult:ResultSet = varPrs.executeQuery()
+
+            while(varResult.next()){
+                val varID = varResult.getInt("varId")
+
+                // selects entries with the given run ID and variation ID
+                val query = "SELECT `assignments`.`id` AS `assignmentId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                        "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                        "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                        "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? AND `assignments`.`variationId` = ?" +
+                        " ORDER BY `assignments`.`created` DESC"
+
+                val prs = connection!!.prepareStatement(query)
+
+                prs.setInt(1, getTypeTable(table).id)
+                prs.setInt(2, ids)
+                prs.setInt(3, varID)
+
+                val result = prs.executeQuery()
+
+                var constantEntry:ConstantsEntry
+                var runRange:LinkedList<Int>
+
+                // go through each entry
+                while (result.next()){
+                    runRange = this.getMinAndMaxRunRange(ids) // get min and max for current run Id
+                    constantEntry = ConstantsEntry(this)
+
+                    val variation = getVariation(varID)
+
+                    if (variation != null) {
+
+                        constantEntry.variation = variation.name // set name
+                        if (variation.parentVariation?.name != null) {
+                            constantEntry.parentVariation = variation.parentVariation!!.name
+                        } // set parent
+
+                        constantEntry.runMin = runRange[0] // set min
+                        constantEntry.runMax = runRange[1] // set max
+                        entries.add(constantEntry)
+                    }
+                }
+            }
+        }
+
+        return entries
+    }
+
+    private fun getMinAndMaxRunRange(runId:Int):LinkedList<Int>{
+
+        val entries:LinkedList<Int> = LinkedList<Int>()
+
+        // query to get the min
+        val minQuery:String = "SELECT `runRanges`.`runMin` AS `runMin` " +
+               "FROM `runRanges` WHERE `id` = ?"
+
+        // query to get the max
+        val maxQuery:String = "SELECT `runRanges`.`runMax` AS `runMax` " +
+                "FROM `runRanges` WHERE `id` = ?"
+
+        // go through all the variation in the table
+        val prsRunRange_Min: PreparedStatement = connection!!.prepareStatement(minQuery)
+        val prsRunRange_Max: PreparedStatement = connection!!.prepareStatement(maxQuery)
+
+        // set up the current range id
+        prsRunRange_Min.setInt(1, runId) // set the table name in the query
+        prsRunRange_Max.setInt(1, runId) // set the table name in the query
+
+        // execute the queries for the min and max
+        val rangeResult_Min = prsRunRange_Min.executeQuery()
+        val rangeResult_Max = prsRunRange_Max.executeQuery()
+
+        //These should be the same size always!
+        while (rangeResult_Min.next() && rangeResult_Max.next() ){
+
+            // retrive the min and max for the current range
+            val min = rangeResult_Min.getInt("runMin")
+            val max = rangeResult_Max.getInt("runMax")
+
+
+            entries.add(min)
+            entries.add(max)
+        }
+
+        return entries
     }
 
 }

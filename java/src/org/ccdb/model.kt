@@ -7,11 +7,14 @@ package org.jlab.ccdb
 
 import java.util.Date
 import java.util.Vector
+import java.util.LinkedList
 import com.sun.javafx.scene.shape.PathUtils
 import org.jlab.ccdb.helpers.combinePath
 import java.util.HashMap
 import kotlin.properties.Delegates
 import kotlin.text.toBoolean
+import org.jlab.ccdb.JDBCProvider
+import java.security.Timestamp
 
 val dataSeparator = '|'
 
@@ -399,5 +402,123 @@ public enum class CellTypes{
             STRING -> "string"
             BOOL -> "bool"
         }
+    }
+}
+
+/**
+ * Created by Andrew Lendacky on 12/21/16.
+ */
+public class ConstantsEntry( private val provider:JDBCProvider) {
+
+    public var runMax:Int = 0
+        //get() { return this.runMax }
+
+    public var runMin:Int = 0
+        //get() { return this.runMin }
+
+    public var variation:String = ""
+        //get() { return this.variation }
+
+    public var parentVariation:String = ""
+        //get() { return this.parentVariation }
+
+
+    /**
+     * Gets all variations entries for table at all runs, and all variations.
+     *
+     * @param table the table path name
+     *
+     * @return returns a Vector containing the entries for the given table. Returns null if the provider is not
+     * connected.
+     */
+     public fun getEntries(table:String):LinkedList<ConstantsEntry>{
+
+        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // is the user connected?
+        if (this.provider.isConnected){
+            // returns full list of assignments for given table, for all runs and all variations
+            entries = this.provider.getConstantEntries(table)
+
+            return entries
+        }else{
+
+            print("Provider is not connected.\n")
+            return entries // will return empty if not connected
+        }
+    }
+
+    /**
+     * Gets all variations entries for table applying to the given run.
+     *
+     * @param table the table path name
+     * @param run the run of the table
+     *
+     * @return returns a Vector containing the entries for the given table and run. Returns null if the provider is not
+     * connected.
+     */
+    public fun getEntries(table:String, run:Int):LinkedList<ConstantsEntry>{
+
+        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
+
+        // is the user connected?
+        if (this.provider.isConnected){
+            //returns all variation entries for the table that will apply to this run
+            entries = this.getEntries(table)
+
+            for (entry in entries){
+                if (run <= entry.runMax && run >= entry.runMin){ runEntries.add(entry) }
+            }
+
+            return runEntries
+        }else{
+
+            print("Provider is not connected.\n")
+            return runEntries // will return empty if not connected
+        }
+    }
+
+    /**
+     * Gets the given variations for table applying to the given run.
+     *
+     * @param table the table path name
+     * @param run the run of the table
+     * @param variationByName a string corresponding to the name of the variation
+     *
+     * @return returns a Vector containing the entries for the given table, run, and variation. Returns null if the provider is not
+     * connected.
+     */
+    public fun getEntries(table:String, variationByName:String, run:Int):LinkedList<ConstantsEntry>{
+
+        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // is the user connected?
+        if (this.provider.isConnected){
+            //returns all variation entries for the table that will apply to this run
+            entries = this.getEntries(table, run)
+            val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for (entry in entries){
+                if (entry.variation == variationByName){ variationEntries.add(entry) }
+            }
+
+            return variationEntries
+        }else{
+
+            print("Provider is not connected.\n")
+            return variationEntries // will return empty if not connected
+        }
+    }
+
+    public fun printConstantEntryInfo(){
+
+        println("Name: " + this.variation)
+
+        if (this.parentVariation != null) { println("Parent Variation: " + this.parentVariation) }
+
+        println("Run Min: " + this.runMin)
+        println("Run Max: " + this.runMax)
     }
 }
