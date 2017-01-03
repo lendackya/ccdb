@@ -499,28 +499,15 @@ open class JDBCProvider(val connectionString: String) {
 
     private fun getRunRangeIds(table:String):LinkedList<Int>{
 
-        val entries:LinkedList<Int> = LinkedList<Int>()
+        val runRangeIds:LinkedList<Int> = LinkedList<Int>()
 
-        // query to get all the run ranges in the table
-        val query:String = "SELECT DISTINCT `assignments`.`runRangeId` AS `runId` FROM `assignments` " +
-                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
-                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
-                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
-                "WHERE `constantSets`.`constantTypeId` = ?"
+        prsRunRangeIds!!.setInt(1, getTypeTable(table).id)
 
-        var prs:PreparedStatement = connection!!.prepareStatement(query)
+        val results:ResultSet = prsRunRangeIds!!.executeQuery()
 
-        prs.setInt(1, getTypeTable(table).id)
-        val results:ResultSet = prs.executeQuery()
+        while (results.next()){ runRangeIds.add(results.getInt("runId")) }
 
-
-        while (results.next()){
-
-            //println(results.getInt("runId"))
-            entries.add(results.getInt("runId"))
-        }
-
-        return entries
+        return runRangeIds
     }
 
     public fun getConstantEntries(table:String):LinkedList<ConstantsEntry>{
@@ -536,7 +523,7 @@ open class JDBCProvider(val connectionString: String) {
 
             // get variation ID for the given run ID
             prsVariationIds!!.setInt(2, ids)
-            var varResult:ResultSet = prsVariationIds!!.executeQuery()
+            val varResult:ResultSet = prsVariationIds!!.executeQuery()
 
             while(varResult.next()){
                 val varID = varResult.getInt("varId")
@@ -557,17 +544,15 @@ open class JDBCProvider(val connectionString: String) {
 
                     val variation = getVariation(varID)
 
-                    if (variation != null) {
 
-                        constantEntry.variation = variation.name // set name
-                        if (variation.parentVariation?.name != null) {
-                            constantEntry.parentVariation = variation.parentVariation!!.name
-                        } // set parent
+                    constantEntry.variation = variation.name // set name
+                    if (variation.parentVariation?.name != null) {
+                        constantEntry.parentVariation = variation.parentVariation!!.name
+                    } // set parent
 
-                        constantEntry.runMin = runRange[0] // set min
-                        constantEntry.runMax = runRange[1] // set max
-                        entries.add(constantEntry)
-                    }
+                    constantEntry.runMin = runRange[0] // set min
+                    constantEntry.runMax = runRange[1] // set max
+                    entries.add(constantEntry)
                 }
             }
         }
