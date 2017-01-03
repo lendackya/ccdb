@@ -92,6 +92,32 @@ class MySqlProvider(connectionString: String) : JDBCProvider(connectionString) {
         prsAllTables = con.prepareStatement("SELECT `id`, UNIX_TIMESTAMP(`created`) as `created`, `name`, `directoryId`, `nRows`, `nColumns`, `comment` FROM `typeTables`")
         prsColumns = con.prepareStatement("SELECT `id`, `name`, `columnType` FROM `columns` WHERE `typeId` = ? ORDER BY `order`;")
 
+
+        prsVariationIds = con.prepareStatement("SELECT DISTINCT `assignments`.`variationId` AS `varId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? ORDER BY `assignments`.`created` DESC")
+
+        prsRunRangeIds = con.prepareStatement("SELECT DISTINCT `assignments`.`runRangeId` AS `runId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ?")
+
+        prsVariationsWithRunRangeId = con.prepareStatement("SELECT `assignments`.`id` AS `assignmentId` FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? AND `assignments`.`variationId` = ?" +
+                " ORDER BY `assignments`.`created` DESC")
+
+        prsRunRangeMax = con.prepareStatement("SELECT `runRanges`.`runMax` AS `runMax` " +
+                "FROM `runRanges` WHERE `id` = ?")
+
+        prsRunRangeMin = con.prepareStatement("SELECT `runRanges`.`runMin` AS `runMin` " +
+                "FROM `runRanges` WHERE `id` = ?")
+
         postConnect()
     }
 }

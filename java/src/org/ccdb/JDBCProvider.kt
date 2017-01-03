@@ -33,6 +33,12 @@ open class JDBCProvider(val connectionString: String) {
     protected var prsAllTables: PreparedStatement? = null
     protected var prsColumns: PreparedStatement? = null
 
+    protected var prsVariationIds: PreparedStatement? = null // used to get all of the variations Ids for a given table
+    protected var prsRunRangeIds: PreparedStatement? = null // used to get the run range ids for a given table
+    protected var prsVariationsWithRunRangeId:PreparedStatement? = null // used to get a variation with a given variation id and run range id
+    protected var prsRunRangeMin: PreparedStatement? = null //used to get the min run using a run range Id
+    protected var prsRunRangeMax: PreparedStatement? = null // used to get the max run using a run range Id
+
     private var stopwatch = Stopwatch()
 
     private var cachedTypeTable: TypeTable? = null
@@ -495,7 +501,7 @@ open class JDBCProvider(val connectionString: String) {
 
         val entries:LinkedList<Int> = LinkedList<Int>()
 
-        // query to get all the variations in the table
+        // query to get all the run ranges in the table
         val query:String = "SELECT DISTINCT `assignments`.`runRangeId` AS `runId` FROM `assignments` " +
                 "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
                 "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
@@ -521,43 +527,25 @@ open class JDBCProvider(val connectionString: String) {
 
         val entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-        // query to get all the variations in the table
-        var varQuery:String = "SELECT DISTINCT `assignments`.`variationId` AS `varId` FROM `assignments` " +
-                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
-                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
-                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
-                "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? ORDER BY `assignments`.`created` DESC"
-
-        var varPrs:PreparedStatement = connection!!.prepareStatement(varQuery)
-
         val runRangeIds:LinkedList<Int> = getRunRangeIds(table)
-        varPrs.setInt(1, getTypeTable(table).id)
+
+        prsVariationIds!!.setInt(1, getTypeTable(table).id)
 
         // go through each run ID
         for (ids in runRangeIds ){
 
             // get variation ID for the given run ID
-            varPrs.setInt(2, ids)
-            var varResult:ResultSet = varPrs.executeQuery()
+            prsVariationIds!!.setInt(2, ids)
+            var varResult:ResultSet = prsVariationIds!!.executeQuery()
 
             while(varResult.next()){
                 val varID = varResult.getInt("varId")
 
-                // selects entries with the given run ID and variation ID
-                val query = "SELECT `assignments`.`id` AS `assignmentId` FROM `assignments` " +
-                "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
-                        "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
-                        "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
-                        "WHERE `constantSets`.`constantTypeId` = ? AND `assignments`.`runRangeId` = ? AND `assignments`.`variationId` = ?" +
-                        " ORDER BY `assignments`.`created` DESC"
+                prsVariationsWithRunRangeId!!.setInt(1, getTypeTable(table).id)
+                prsVariationsWithRunRangeId!!.setInt(2, ids)
+                prsVariationsWithRunRangeId!!.setInt(3, varID)
 
-                val prs = connection!!.prepareStatement(query)
-
-                prs.setInt(1, getTypeTable(table).id)
-                prs.setInt(2, ids)
-                prs.setInt(3, varID)
-
-                val result = prs.executeQuery()
+                val result = prsVariationsWithRunRangeId!!.executeQuery()
 
                 var constantEntry:ConstantsEntry
                 var runRange:LinkedList<Int>
@@ -591,25 +579,13 @@ open class JDBCProvider(val connectionString: String) {
 
         val entries:LinkedList<Int> = LinkedList<Int>()
 
-        // query to get the min
-        val minQuery:String = "SELECT `runRanges`.`runMin` AS `runMin` " +
-               "FROM `runRanges` WHERE `id` = ?"
-
-        // query to get the max
-        val maxQuery:String = "SELECT `runRanges`.`runMax` AS `runMax` " +
-                "FROM `runRanges` WHERE `id` = ?"
-
-        // go through all the variation in the table
-        val prsRunRange_Min: PreparedStatement = connection!!.prepareStatement(minQuery)
-        val prsRunRange_Max: PreparedStatement = connection!!.prepareStatement(maxQuery)
-
         // set up the current range id
-        prsRunRange_Min.setInt(1, runId) // set the table name in the query
-        prsRunRange_Max.setInt(1, runId) // set the table name in the query
+        prsRunRangeMin!!.setInt(1, runId) // set the table name in the query
+        prsRunRangeMax!!.setInt(1, runId) // set the table name in the query
 
         // execute the queries for the min and max
-        val rangeResult_Min = prsRunRange_Min.executeQuery()
-        val rangeResult_Max = prsRunRange_Max.executeQuery()
+        val rangeResult_Min = prsRunRangeMin!!.executeQuery()
+        val rangeResult_Max = prsRunRangeMax!!.executeQuery()
 
         //These should be the same size always!
         while (rangeResult_Min.next() && rangeResult_Max.next() ){
@@ -617,7 +593,6 @@ open class JDBCProvider(val connectionString: String) {
             // retrive the min and max for the current range
             val min = rangeResult_Min.getInt("runMin")
             val max = rangeResult_Max.getInt("runMax")
-
 
             entries.add(min)
             entries.add(max)

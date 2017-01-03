@@ -452,7 +452,7 @@ class ConstantsEntry( private val provider:JDBCProvider) {
      */
     public fun getEntries(table: String, variationByName: String):LinkedList<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        var entries:LinkedList<ConstantsEntry>
         val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
 
         // is the user connected?
@@ -483,7 +483,7 @@ class ConstantsEntry( private val provider:JDBCProvider) {
      */
     public fun getEntries(table:String, run:Int):LinkedList<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        var entries:LinkedList<ConstantsEntry>
         val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
 
         // is the user connected?
@@ -516,14 +516,13 @@ class ConstantsEntry( private val provider:JDBCProvider) {
      */
     public fun getEntries(table:String, variationByName:String, run:Int):LinkedList<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        var entries:LinkedList<ConstantsEntry>
         val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         // is the user connected?
         if (this.provider.isConnected){
             //returns all variation entries for the table that will apply to this run
             entries = this.getEntries(table, run)
-            val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
             // check if the variation name matches
             for (entry in entries){
@@ -550,14 +549,13 @@ class ConstantsEntry( private val provider:JDBCProvider) {
      */
     public fun getEntries(table:String, variationByName: String, runMin:Int, runMax:Int):LinkedList<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        var entries:LinkedList<ConstantsEntry>
         val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         // is the user connected?
         if (this.provider.isConnected){
             //returns all variation entries for the table that will apply to this run
             entries = this.getEntries(table, variationByName)
-            val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
             // check if the run min and max match
             for (entry in entries){
@@ -576,7 +574,7 @@ class ConstantsEntry( private val provider:JDBCProvider) {
     public fun printConstantEntryInfo(){
 
         println("Name: " + this.variation)
-        if (this.parentVariation != null) { println("Parent Variation: " + this.parentVariation) }
+        println("Parent Variation: " + this.parentVariation)
         println("Run Min: " + this.runMin)
         println("Run Max: " + this.runMax)
     }
