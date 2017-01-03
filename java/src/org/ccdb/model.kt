@@ -448,6 +448,28 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
         }
     }
 
+    public fun getEntries(table: String, variationByName: String):LinkedList<ConstantsEntry>{
+
+        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
+
+        // is the user connected?
+        if (this.provider.isConnected){
+            //returns all variation entries for the table that will apply to this run
+            entries = this.getEntries(table)
+
+            for (entry in entries){
+                if (entry.variation == variationByName) { variationEntries.add(entry) }
+            }
+
+            return variationEntries
+        }else{
+
+            print("Provider is not connected.\n")
+            return variationEntries // will return empty if not connected
+        }
+    }
+
     /**
      * Gets all variations entries for table applying to the given run.
      *
@@ -510,6 +532,30 @@ public class ConstantsEntry( private val provider:JDBCProvider) {
             print("Provider is not connected.\n")
             return variationEntries // will return empty if not connected
         }
+    }
+
+    public fun getEntries(table:String, variationByName: String, runMin:Int, runMax:Int):LinkedList<ConstantsEntry>{
+
+        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // is the user connected?
+        if (this.provider.isConnected){
+            //returns all variation entries for the table that will apply to this run
+            entries = this.getEntries(table, variationByName)
+            val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for (entry in entries){
+                if (entry.runMin == runMin && entry.runMax == runMax){ runEntries.add(entry) }
+            }
+
+            return runEntries
+        }else{
+
+            print("Provider is not connected.\n")
+            return runEntries // will return empty if not connected
+        }
+
     }
 
     public fun printConstantEntryInfo(){
