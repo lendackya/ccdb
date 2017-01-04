@@ -30,11 +30,11 @@ open class JDBCProvider(val connectionString: String) {
     protected var prsAllTables: PreparedStatement? = null
     protected var prsColumns: PreparedStatement? = null
 
-    protected var prsVariationIds: PreparedStatement? = null // used to get all of the variations Ids for a given table
     protected var prsRunRangeIds: PreparedStatement? = null // used to get the run range ids for a given table
-    protected var prsVariationsWithRunRangeId:PreparedStatement? = null // used to get a variation with a given variation id and run range id
     protected var prsRunRangeMin: PreparedStatement? = null //used to get the min run using a run range Id
     protected var prsRunRangeMax: PreparedStatement? = null // used to get the max run using a run range Id
+    protected var prsGetAllData:PreparedStatement? = null
+
 
     private var stopwatch = Stopwatch()
 
@@ -507,51 +507,31 @@ open class JDBCProvider(val connectionString: String) {
 
         val entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-        val runRangeIds:List<Int> = getRunRangeIds(table)
+        prsGetAllData!!.setInt(1, getTypeTable(table).id)
 
-        prsVariationIds!!.setInt(1, getTypeTable(table).id)
+        var result:ResultSet = prsGetAllData!!.executeQuery()
+        var constantEntry:ConstantsEntry
 
-        // go through each run ID
-        for (ids in runRangeIds ){
+        while(result.next()){
 
-            // get variation ID for the given run ID
-            prsVariationIds!!.setInt(2, ids)
-            val varResult:ResultSet = prsVariationIds!!.executeQuery()
+            constantEntry = ConstantsEntry(this)
 
-            while(varResult.next()){
-                val varID = varResult.getInt("varId")
+            var varId = result.getInt("variationId")
+            var runId = result.getInt("runRangeId")
+            var created = result.getTimestamp("created")
+            var variation = getVariation(varId)
+            var runRanges = this.getMinAndMaxRunRange(runId)
 
-                prsVariationsWithRunRangeId!!.setInt(1, getTypeTable(table).id)
-                prsVariationsWithRunRangeId!!.setInt(2, ids)
-                prsVariationsWithRunRangeId!!.setInt(3, varID)
+            //println("Var ID:" + variation.name + "\tRun Min: " + runRanges[0] + "\tRun Max: " + runRanges[1] + "\tCreated: " + created)
 
-                val result = prsVariationsWithRunRangeId!!.executeQuery()
+            constantEntry.variation = variation.name
+            constantEntry.runMin = runRanges[0]
+            constantEntry.runMax = runRanges[1]
+            constantEntry.created = created
 
-                var constantEntry:ConstantsEntry
-                var runRange:List<Int>
-                var created:Timestamp
-                // go through each entry
-                while (result.next()){
+            if (variation.parentVariation?.name != null) { constantEntry.parentVariation = variation.parentVariation!!.name }
 
-                    created = result.getTimestamp("assignmentCreated")
-
-                    runRange = this.getMinAndMaxRunRange(ids) // get min and max for current run Id
-                    val variation = getVariation(varID) // get variation from ID
-
-                    constantEntry = ConstantsEntry(this)
-                    // add values
-                    constantEntry.variation = variation.name
-                    constantEntry.runMin = runRange[0]
-                    constantEntry.runMax = runRange[1]
-                    constantEntry.created = created
-
-                    if (variation.parentVariation?.name != null) {
-                        constantEntry.parentVariation = variation.parentVariation!!.name
-                    }
-
-                    entries.add(constantEntry)
-                }
-            }
+            entries.add(constantEntry)
         }
 
         return entries

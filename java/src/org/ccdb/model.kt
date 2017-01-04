@@ -14,6 +14,7 @@ import org.jlab.ccdb.JDBCProvider
 import java.security.Timestamp
 import java.sql.Time
 import java.util.*
+import java.util.Collections
 
 val dataSeparator = '|'
 
@@ -407,7 +408,7 @@ public enum class CellTypes{
 /**
  * Created by Andrew Lendacky on 12/21/16.
  */
-class ConstantsEntry( private val provider:JDBCProvider){
+class ConstantsEntry( private val provider:JDBCProvider) {
 
     var runMin: Int = 0
     var runMax: Int = 0
@@ -494,7 +495,7 @@ class ConstantsEntry( private val provider:JDBCProvider){
 
         val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
         val variationNames:HashSet<String> = HashSet<String>() // keeps the name of all distinct variation names in entries
-        //val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         // get each distinct variation name from the filtered list
         for (entry in entries){ variationNames.add(entry.variation) }
@@ -503,10 +504,7 @@ class ConstantsEntry( private val provider:JDBCProvider){
         for (name in variationNames){
             val variation:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-            for (entry in entries){
-
-                if (entry.variation == name){ variation.add(entry) }
-            }
+            for (entry in entries){ if (entry.variation == name){ variation.add(entry) } }
 
             filteredEntries.add(variation)
         }
@@ -562,5 +560,6 @@ class ConstantsEntry( private val provider:JDBCProvider){
         println("Run Max: " + this.runMax)
         println("Created: " + this.created)
     }
+
 
 }
