@@ -105,7 +105,8 @@ class MySqlProvider(connectionString: String) : JDBCProvider(connectionString) {
                 "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
                 "WHERE `constantSets`.`constantTypeId` = ?")
 
-        prsVariationsWithRunRangeId = con.prepareStatement("SELECT `assignments`.`id` AS `assignmentId` FROM `assignments` " +
+        prsVariationsWithRunRangeId = con.prepareStatement("SELECT `assignments`.`id` AS `assignmentId`, `assignments`.`created` AS `assignmentCreated` " +
+                "FROM `assignments` " +
                 "USE INDEX (id_UNIQUE) INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
                 "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
                 "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
@@ -120,4 +121,6 @@ class MySqlProvider(connectionString: String) : JDBCProvider(connectionString) {
 
         postConnect()
     }
+
+
 }

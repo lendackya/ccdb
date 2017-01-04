@@ -6,11 +6,13 @@
 package org.jlab.ccdb
 
 import com.sun.javafx.scene.shape.PathUtils
+import com.sun.tools.corba.se.idl.constExpr.Times
 import org.jlab.ccdb.helpers.combinePath
 import kotlin.properties.Delegates
 import kotlin.text.toBoolean
 import org.jlab.ccdb.JDBCProvider
 import java.security.Timestamp
+import java.sql.Time
 import java.util.*
 
 val dataSeparator = '|'
@@ -410,9 +412,9 @@ class ConstantsEntry( private val provider:JDBCProvider){
     var runMin: Int = 0
     var runMax: Int = 0
     lateinit var variation: String
-    lateinit var parentVariation:String
+    var parentVariation:String = "" // if there is no parent variation, will stay empty
 
-    lateinit var time:Date
+    lateinit var created:java.sql.Timestamp
 
     /**
      * Gets all variations entries for table at all runs, and all variations.
@@ -438,6 +440,7 @@ class ConstantsEntry( private val provider:JDBCProvider){
         }
     }
 
+    // MARK -- Functions to filter ConstantsEntry objects
 
     public fun filterEntriesBy(table:String, variation:String, run:Int):LinkedList<ConstantsEntry>{
 
@@ -453,7 +456,6 @@ class ConstantsEntry( private val provider:JDBCProvider){
 
         return sortedEntries
     }
-
 
     public fun filterEntriesBy(table:String, run: Int):LinkedList<LinkedList<ConstantsEntry>>{
 
@@ -488,14 +490,13 @@ class ConstantsEntry( private val provider:JDBCProvider){
         return filteredEntries
     }
 
-
     public fun filterEntriesBy(table:String, variation: String):LinkedList<LinkedList<ConstantsEntry>>{
 
         val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
         val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
         val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-
+        // used to get distinct run ranges
         val mins:HashSet<Int> = HashSet<Int>()
         val maxs:HashSet<Int> = HashSet<Int>()
 
@@ -506,6 +507,8 @@ class ConstantsEntry( private val provider:JDBCProvider){
 
         // get each distinct variation name from the filtered list
         for (entry in filtered){
+            // SHOULD BE THE SAME SIZE ALWAYS && IN MIN AND MAX SHOULD BE IN 1-1 CORREPSONDENCE
+            // Ex: index 1 of mins corresponds to the number at index 1 of max, etc..
             mins.add(entry.runMin)
             maxs.add(entry.runMax)
         }
@@ -525,20 +528,7 @@ class ConstantsEntry( private val provider:JDBCProvider){
         }
 
         return filteredEntries
-
     }
-
-//    private fun getDistinctRunRanges(runRanges: HashSet<RunRange>):HashSet<RunRange>{
-//
-//
-//        for (runRange in runRanges){
-//
-//
-//
-//        }
-//
-//    }
-
 
     /**
      * Gets all variations entries for table applying to the given run.
@@ -574,16 +564,10 @@ class ConstantsEntry( private val provider:JDBCProvider){
     public fun printConstantEntryInfo(){
 
         println("Name: " + this.variation)
-        //println("Parent Variation: " + this.parentVariation)
+        println("Parent Variation: " + this.parentVariation)
         println("Run Min: " + this.runMin)
         println("Run Max: " + this.runMax)
+        println("Created: " + this.created)
     }
 
-
-    class RunRange(val min:Int,
-                   val max:Int){
-
-
-
-    }
 }

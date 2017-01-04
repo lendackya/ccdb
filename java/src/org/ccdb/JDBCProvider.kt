@@ -3,17 +3,14 @@ package org.jlab.ccdb
 import com.sun.tools.internal.jxc.ap.Const
 import java.util.HashMap
 import java.util.Vector
-import java.sql.Connection
-import java.sql.PreparedStatement
 import java.util.Date
-import java.sql.SQLException
-import java.sql.ResultSet
 import java.util.LinkedList
 
 import org.jlab.ccdb.helpers.extractObjectName
 import org.jlab.ccdb.helpers.extractDirectory
 import org.jlab.ccdb.helpers.combinePath
 import org.jlab.ccdb.helpers.parseRequest
+import java.sql.*
 
 open class JDBCProvider(val connectionString: String) {
 
@@ -532,9 +529,12 @@ open class JDBCProvider(val connectionString: String) {
 
                 var constantEntry:ConstantsEntry
                 var runRange:LinkedList<Int>
-
+                var created:Timestamp
                 // go through each entry
                 while (result.next()){
+
+                    created = result.getTimestamp("assignmentCreated")
+
                     runRange = this.getMinAndMaxRunRange(ids) // get min and max for current run Id
                     val variation = getVariation(varID) // get variation from ID
 
@@ -543,6 +543,7 @@ open class JDBCProvider(val connectionString: String) {
                     constantEntry.variation = variation.name
                     constantEntry.runMin = runRange[0]
                     constantEntry.runMax = runRange[1]
+                    constantEntry.created = created
 
                     if (variation.parentVariation?.name != null) {
                         constantEntry.parentVariation = variation.parentVariation!!.name
