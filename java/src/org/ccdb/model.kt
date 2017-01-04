@@ -413,7 +413,6 @@ class ConstantsEntry( private val provider:JDBCProvider){
     var runMax: Int = 0
     lateinit var variation: String
     var parentVariation:String = "" // if there is no parent variation, will stay empty
-
     lateinit var created:java.sql.Timestamp
 
     /**
@@ -438,96 +437,6 @@ class ConstantsEntry( private val provider:JDBCProvider){
             print("Provider is not connected.\n")
             return entries // will return empty if not connected
         }
-    }
-
-    // MARK -- Functions to filter ConstantsEntry objects
-
-    public fun filterEntriesBy(table:String, variation:String, run:Int):LinkedList<ConstantsEntry>{
-
-        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
-        val sortedEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-        for (entry in entries){
-
-            if (entry.variation == variation && run <= entry.runMax && run >= entry.runMin){
-                sortedEntries.add(entry)
-            }
-        }
-
-        return sortedEntries
-    }
-
-    public fun filterEntriesBy(table:String, run: Int):LinkedList<LinkedList<ConstantsEntry>>{
-
-        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
-        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
-        val variationNames:HashSet<String> = HashSet<String>() // keeps the name of all distinct variation names in entries
-        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-        // get the entries where the run falls within the range
-        for (entry in entries){
-            if (run >= entry.runMin && run < entry.runMax){ filtered.add(entry) }
-        }
-
-        // get each distinct variation name from the filtered list
-        for (entry in filtered){
-            variationNames.add(entry.variation)
-        }
-
-        // create a list for each variation and add it to filteredEntries
-        for (name in variationNames){
-
-            val variation:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-            for (entry in filtered){
-
-                if (entry.variation == name){ variation.add(entry) }
-            }
-
-            filteredEntries.add(variation)
-        }
-
-        return filteredEntries
-    }
-
-    public fun filterEntriesBy(table:String, variation: String):LinkedList<LinkedList<ConstantsEntry>>{
-
-        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
-        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
-        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-        // used to get distinct run ranges
-        val mins:HashSet<Int> = HashSet<Int>()
-        val maxs:HashSet<Int> = HashSet<Int>()
-
-        // get the entries where the run falls within the range
-        for (entry in entries){
-            if (entry.variation == variation){ filtered.add(entry) }
-        }
-
-        // get each distinct variation name from the filtered list
-        for (entry in filtered){
-            // SHOULD BE THE SAME SIZE ALWAYS && IN MIN AND MAX SHOULD BE IN 1-1 CORREPSONDENCE
-            // Ex: index 1 of mins corresponds to the number at index 1 of max, etc..
-            mins.add(entry.runMin)
-            maxs.add(entry.runMax)
-        }
-
-        val numDistinctRuns = mins.size
-
-        for (i in 0..numDistinctRuns - 1){
-
-           var ranges:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-            for(entry in filtered){
-
-                if (entry.runMin == mins.elementAt(i) && entry.runMax == maxs.elementAt(i)){ ranges.add(entry) }
-            }
-
-            filteredEntries.add(ranges)
-        }
-
-        return filteredEntries
     }
 
     /**
@@ -559,6 +468,90 @@ class ConstantsEntry( private val provider:JDBCProvider){
             print("Provider is not connected.\n")
             return runEntries // will return empty if not connected
         }
+    }
+
+
+    // MARK -- Functions to filter ConstantsEntry objects
+
+    public fun filterEntriesBy(table:String, variation:String, run:Int):LinkedList<ConstantsEntry>{
+
+        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val sortedEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        for (entry in entries){
+
+            if (entry.variation == variation && run <= entry.runMax && run >= entry.runMin){
+                sortedEntries.add(entry)
+            }
+        }
+
+        return sortedEntries
+    }
+
+    public fun filterEntriesBy(table:String, run: Int):HashMap<String, LinkedList<ConstantsEntry>>{
+
+        val entries:LinkedList<ConstantsEntry> = this.getEntries(table, run)
+
+        val filteredEntries:HashMap<String, LinkedList<ConstantsEntry>> = HashMap<String, LinkedList<ConstantsEntry>>()
+        val variationNames:HashSet<String> = HashSet<String>() // keeps the name of all distinct variation names in entries
+        //val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // get each distinct variation name from the filtered list
+        for (entry in entries){ variationNames.add(entry.variation) }
+
+        // create a list for each variation and add it to filteredEntries
+        for (name in variationNames){
+            val variation:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for (entry in entries){
+
+                if (entry.variation == name){ variation.add(entry) }
+            }
+
+            filteredEntries.put(name, variation)
+        }
+
+        return filteredEntries
+    }
+
+    public fun filterEntriesBy(table:String, variation: String):HashMap<String, LinkedList<ConstantsEntry>>{
+
+        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val filteredEntries:HashMap<String, LinkedList<ConstantsEntry>> = HashMap<String, LinkedList<ConstantsEntry>>()
+        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // used to get distinct run ranges
+        val mins:HashSet<Int> = HashSet<Int>()
+        val maxs:HashSet<Int> = HashSet<Int>()
+
+        // get the entries where the run falls within the range
+        for (entry in entries){
+            if (entry.variation == variation){ filtered.add(entry) }
+        }
+
+        // get each distinct variation name from the filtered list
+        for (entry in filtered){
+            // SHOULD BE THE SAME SIZE ALWAYS && IN MIN AND MAX SHOULD BE IN 1-1 CORREPSONDENCE
+            // Ex: index 1 of mins corresponds to the number at index 1 of max, etc..
+            mins.add(entry.runMin)
+            maxs.add(entry.runMax)
+        }
+
+        val numDistinctRuns = mins.size
+
+        for (i in 0..numDistinctRuns - 1){
+
+           var ranges:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for(entry in filtered){
+
+                if (entry.runMin == mins.elementAt(i) && entry.runMax == maxs.elementAt(i)){ ranges.add(entry) }
+            }
+
+            filteredEntries.put(mins.elementAt(i).toString() + "-" + maxs.elementAt(i).toString(), ranges)
+        }
+
+        return filteredEntries
     }
 
     public fun printConstantEntryInfo(){
