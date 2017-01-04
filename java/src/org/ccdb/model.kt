@@ -422,9 +422,9 @@ class ConstantsEntry( private val provider:JDBCProvider){
      *
      * @return returns a Vector containing the entries for the given table.
      */
-     public fun getEntries(table:String):LinkedList<ConstantsEntry>{
+     public fun getEntries(table:String):List<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+        var entries:List<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         // is the user connected?
         if (this.provider.isConnected){
@@ -447,9 +447,9 @@ class ConstantsEntry( private val provider:JDBCProvider){
      *
      * @return returns a Vector containing the entries for the given table and run.
      */
-    public fun getEntries(table:String, run:Int):LinkedList<ConstantsEntry>{
+    public fun getEntries(table:String, run:Int):List<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry>
+        var entries:List<ConstantsEntry>
         val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
 
         // is the user connected?
@@ -473,9 +473,9 @@ class ConstantsEntry( private val provider:JDBCProvider){
 
     // MARK -- Functions to filter ConstantsEntry objects
 
-    public fun filterEntriesBy(table:String, variation:String, run:Int):LinkedList<ConstantsEntry>{
+    public fun filterEntriesBy(table:String, variation:String, run:Int):List<ConstantsEntry>{
 
-        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val entries:List<ConstantsEntry> = this.provider.getConstantEntries(table)
         val sortedEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         for (entry in entries){
@@ -488,11 +488,11 @@ class ConstantsEntry( private val provider:JDBCProvider){
         return sortedEntries
     }
 
-    public fun filterEntriesBy(table:String, run: Int):HashMap<String, LinkedList<ConstantsEntry>>{
+    public fun filterEntriesBy(table:String, run: Int):List<List<ConstantsEntry>>{
 
-        val entries:LinkedList<ConstantsEntry> = this.getEntries(table, run)
+        val entries:List<ConstantsEntry> = this.getEntries(table, run)
 
-        val filteredEntries:HashMap<String, LinkedList<ConstantsEntry>> = HashMap<String, LinkedList<ConstantsEntry>>()
+        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
         val variationNames:HashSet<String> = HashSet<String>() // keeps the name of all distinct variation names in entries
         //val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
@@ -508,16 +508,16 @@ class ConstantsEntry( private val provider:JDBCProvider){
                 if (entry.variation == name){ variation.add(entry) }
             }
 
-            filteredEntries.put(name, variation)
+            filteredEntries.add(variation)
         }
 
         return filteredEntries
     }
 
-    public fun filterEntriesBy(table:String, variation: String):HashMap<String, LinkedList<ConstantsEntry>>{
+    public fun filterEntriesBy(table:String, variation: String):List<List<ConstantsEntry>>{
 
-        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
-        val filteredEntries:HashMap<String, LinkedList<ConstantsEntry>> = HashMap<String, LinkedList<ConstantsEntry>>()
+        val entries:List<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
         val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
         // used to get distinct run ranges
@@ -548,7 +548,7 @@ class ConstantsEntry( private val provider:JDBCProvider){
                 if (entry.runMin == mins.elementAt(i) && entry.runMax == maxs.elementAt(i)){ ranges.add(entry) }
             }
 
-            filteredEntries.put(mins.elementAt(i).toString() + "-" + maxs.elementAt(i).toString(), ranges)
+            filteredEntries.add(ranges)
         }
 
         return filteredEntries

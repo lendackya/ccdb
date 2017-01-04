@@ -503,11 +503,11 @@ open class JDBCProvider(val connectionString: String) {
      * @return returns a list of all the enries for that table
      *
      */
-    fun getConstantEntries(table:String):LinkedList<ConstantsEntry>{
+    fun getConstantEntries(table:String):List<ConstantsEntry>{
 
         val entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-        val runRangeIds:LinkedList<Int> = getRunRangeIds(table)
+        val runRangeIds:List<Int> = getRunRangeIds(table)
 
         prsVariationIds!!.setInt(1, getTypeTable(table).id)
 
@@ -528,7 +528,7 @@ open class JDBCProvider(val connectionString: String) {
                 val result = prsVariationsWithRunRangeId!!.executeQuery()
 
                 var constantEntry:ConstantsEntry
-                var runRange:LinkedList<Int>
+                var runRange:List<Int>
                 var created:Timestamp
                 // go through each entry
                 while (result.next()){
@@ -564,7 +564,7 @@ open class JDBCProvider(val connectionString: String) {
      *
      * @return A list containing the min and max, at index 0 and 1, respectively
      */
-    private fun getMinAndMaxRunRange(runId:Int):LinkedList<Int>{
+    private fun getMinAndMaxRunRange(runId:Int):List<Int>{
 
         val entries:LinkedList<Int> = LinkedList<Int>()
 
@@ -590,7 +590,6 @@ open class JDBCProvider(val connectionString: String) {
         return entries
     }
 
-
     /**
      * Returns all of runRange IDs in a given table.
      *
@@ -599,7 +598,7 @@ open class JDBCProvider(val connectionString: String) {
      * @return returns a list containing all of the runRange IDs in that table for all variations
      *
      */
-    private fun getRunRangeIds(table:String):LinkedList<Int>{
+    private fun getRunRangeIds(table:String):List<Int>{
 
         val runRangeIds:LinkedList<Int> = LinkedList<Int>()
 
