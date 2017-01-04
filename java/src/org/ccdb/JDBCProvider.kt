@@ -497,20 +497,16 @@ open class JDBCProvider(val connectionString: String) {
         return assignment
     }
 
-    private fun getRunRangeIds(table:String):LinkedList<Int>{
 
-        val runRangeIds:LinkedList<Int> = LinkedList<Int>()
-
-        prsRunRangeIds!!.setInt(1, getTypeTable(table).id)
-
-        val results:ResultSet = prsRunRangeIds!!.executeQuery()
-
-        while (results.next()){ runRangeIds.add(results.getInt("runId")) }
-
-        return runRangeIds
-    }
-
-    public fun getConstantEntries(table:String):LinkedList<ConstantsEntry>{
+    /**
+     * Retreives all the entries of a given table for all variations and run ranges
+     *
+     * @param table the table name (fullpath)
+     *
+     * @return returns a list of all the enries for that table
+     *
+     */
+    fun getConstantEntries(table:String):LinkedList<ConstantsEntry>{
 
         val entries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
@@ -540,18 +536,18 @@ open class JDBCProvider(val connectionString: String) {
                 // go through each entry
                 while (result.next()){
                     runRange = this.getMinAndMaxRunRange(ids) // get min and max for current run Id
+                    val variation = getVariation(varID) // get variation from ID
+
                     constantEntry = ConstantsEntry(this)
+                    // add values
+                    constantEntry.variation = variation.name
+                    constantEntry.runMin = runRange[0]
+                    constantEntry.runMax = runRange[1]
 
-                    val variation = getVariation(varID)
-
-
-                    constantEntry.variation = variation.name // set name
                     if (variation.parentVariation?.name != null) {
                         constantEntry.parentVariation = variation.parentVariation!!.name
-                    } // set parent
+                    }
 
-                    constantEntry.runMin = runRange[0] // set min
-                    constantEntry.runMax = runRange[1] // set max
                     entries.add(constantEntry)
                 }
             }
@@ -560,6 +556,13 @@ open class JDBCProvider(val connectionString: String) {
         return entries
     }
 
+    /**
+     * Takes a runRange ID and returns the min and max of that range
+     *
+     * @param runId runRange ID
+     *
+     * @return A list containing the min and max, at index 0 and 1, respectively
+     */
     private fun getMinAndMaxRunRange(runId:Int):LinkedList<Int>{
 
         val entries:LinkedList<Int> = LinkedList<Int>()
@@ -584,6 +587,28 @@ open class JDBCProvider(val connectionString: String) {
         }
 
         return entries
+    }
+
+
+    /**
+     * Returns all of runRange IDs in a given table.
+     *
+     * @param table the table name (full path) that you want the IDs for.
+     *
+     * @return returns a list containing all of the runRange IDs in that table for all variations
+     *
+     */
+    private fun getRunRangeIds(table:String):LinkedList<Int>{
+
+        val runRangeIds:LinkedList<Int> = LinkedList<Int>()
+
+        prsRunRangeIds!!.setInt(1, getTypeTable(table).id)
+
+        val results:ResultSet = prsRunRangeIds!!.executeQuery()
+
+        while (results.next()){ runRangeIds.add(results.getInt("runId")) }
+
+        return runRangeIds
     }
 
 }

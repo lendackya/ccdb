@@ -5,16 +5,13 @@
 
 package org.jlab.ccdb
 
-import java.util.Date
-import java.util.Vector
-import java.util.LinkedList
 import com.sun.javafx.scene.shape.PathUtils
 import org.jlab.ccdb.helpers.combinePath
-import java.util.HashMap
 import kotlin.properties.Delegates
 import kotlin.text.toBoolean
 import org.jlab.ccdb.JDBCProvider
 import java.security.Timestamp
+import java.util.*
 
 val dataSeparator = '|'
 
@@ -408,15 +405,14 @@ public enum class CellTypes{
 /**
  * Created by Andrew Lendacky on 12/21/16.
  */
-class ConstantsEntry( private val provider:JDBCProvider) {
+class ConstantsEntry( private val provider:JDBCProvider){
 
-    public var runMax:Int = 0
+    var runMin: Int = 0
+    var runMax: Int = 0
+    lateinit var variation: String
+    lateinit var parentVariation:String
 
-    public var runMin:Int = 0
-
-    public var variation:String = ""
-
-    public var parentVariation:String = ""
+    lateinit var time:Date
 
     /**
      * Gets all variations entries for table at all runs, and all variations.
@@ -442,36 +438,107 @@ class ConstantsEntry( private val provider:JDBCProvider) {
         }
     }
 
-    /**
-     * Gets all variations entries for table at all runs, and all variations.
-     *
-     * @param table the table path name
-     * @param variationByName name of the variation in the table
-     *
-     * @return returns a Vector containing the entries for the given table for the specified variation.
-     */
-    public fun getEntries(table: String, variationByName: String):LinkedList<ConstantsEntry>{
 
-        var entries:LinkedList<ConstantsEntry>
-        val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>() // holds the entries within a given run
+    public fun filterEntriesBy(table:String, variation:String, run:Int):LinkedList<ConstantsEntry>{
 
-        // is the user connected?
-        if (this.provider.isConnected){
-            //returns all variation entries for the table that will apply to this run
-            entries = this.getEntries(table)
+        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val sortedEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
 
-            // check if the variation name matches
-            for (entry in entries){
-                if (entry.variation == variationByName) { variationEntries.add(entry) }
+        for (entry in entries){
+
+            if (entry.variation == variation && run <= entry.runMax && run >= entry.runMin){
+                sortedEntries.add(entry)
+            }
+        }
+
+        return sortedEntries
+    }
+
+
+    public fun filterEntriesBy(table:String, run: Int):LinkedList<LinkedList<ConstantsEntry>>{
+
+        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
+        val variationNames:HashSet<String> = HashSet<String>() // keeps the name of all distinct variation names in entries
+        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+        // get the entries where the run falls within the range
+        for (entry in entries){
+            if (run >= entry.runMin && run < entry.runMax){ filtered.add(entry) }
+        }
+
+        // get each distinct variation name from the filtered list
+        for (entry in filtered){
+            variationNames.add(entry.variation)
+        }
+
+        // create a list for each variation and add it to filteredEntries
+        for (name in variationNames){
+
+            val variation:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for (entry in filtered){
+
+                if (entry.variation == name){ variation.add(entry) }
             }
 
-            return variationEntries
-        }else{
-
-            print("Provider is not connected.\n")
-            return variationEntries // will return empty if not connected
+            filteredEntries.add(variation)
         }
+
+        return filteredEntries
     }
+
+
+    public fun filterEntriesBy(table:String, variation: String):LinkedList<LinkedList<ConstantsEntry>>{
+
+        val entries:LinkedList<ConstantsEntry> = this.provider.getConstantEntries(table)
+        val filteredEntries:LinkedList<LinkedList<ConstantsEntry>> = LinkedList<LinkedList<ConstantsEntry>>()
+        val filtered:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+
+        val mins:HashSet<Int> = HashSet<Int>()
+        val maxs:HashSet<Int> = HashSet<Int>()
+
+        // get the entries where the run falls within the range
+        for (entry in entries){
+            if (entry.variation == variation){ filtered.add(entry) }
+        }
+
+        // get each distinct variation name from the filtered list
+        for (entry in filtered){
+            mins.add(entry.runMin)
+            maxs.add(entry.runMax)
+        }
+
+        val numDistinctRuns = mins.size
+
+        for (i in 0..numDistinctRuns - 1){
+
+           var ranges:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
+
+            for(entry in filtered){
+
+                if (entry.runMin == mins.elementAt(i) && entry.runMax == maxs.elementAt(i)){ ranges.add(entry) }
+            }
+
+            filteredEntries.add(ranges)
+        }
+
+        return filteredEntries
+
+    }
+
+//    private fun getDistinctRunRanges(runRanges: HashSet<RunRange>):HashSet<RunRange>{
+//
+//
+//        for (runRange in runRanges){
+//
+//
+//
+//        }
+//
+//    }
+
 
     /**
      * Gets all variations entries for table applying to the given run.
@@ -504,78 +571,19 @@ class ConstantsEntry( private val provider:JDBCProvider) {
         }
     }
 
-    /**
-     * Gets the given variations for table applying where a specified run falls within the variations run range
-     *
-     * @param table the table path name
-     * @param run the run of the table
-     * @param variationByName a string corresponding to the name of the variation
-     *
-     * @return returns a Vector containing the entries for the given table, run, and variation.
-     * connected.
-     */
-    public fun getEntries(table:String, variationByName:String, run:Int):LinkedList<ConstantsEntry>{
-
-        var entries:LinkedList<ConstantsEntry>
-        val variationEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-        // is the user connected?
-        if (this.provider.isConnected){
-            //returns all variation entries for the table that will apply to this run
-            entries = this.getEntries(table, run)
-
-            // check if the variation name matches
-            for (entry in entries){
-                if (entry.variation == variationByName){ variationEntries.add(entry) }
-            }
-
-            return variationEntries
-        }else{
-
-            print("Provider is not connected.\n")
-            return variationEntries // will return empty if not connected
-        }
-    }
-
-    /**
-     * Gets the given variations for a table that matches the run min and run max
-     *
-     * @param table the table path name
-     * @param runMin the min run range of the table
-     * @param runMax the max run range of the table
-     * @param variationByName a string corresponding to the name of the variation
-     *
-     * @return returns a Vector containing the entries for the given table and variation, matching the specified run ranges.
-     */
-    public fun getEntries(table:String, variationByName: String, runMin:Int, runMax:Int):LinkedList<ConstantsEntry>{
-
-        var entries:LinkedList<ConstantsEntry>
-        val runEntries:LinkedList<ConstantsEntry> = LinkedList<ConstantsEntry>()
-
-        // is the user connected?
-        if (this.provider.isConnected){
-            //returns all variation entries for the table that will apply to this run
-            entries = this.getEntries(table, variationByName)
-
-            // check if the run min and max match
-            for (entry in entries){
-                if (entry.runMin == runMin && entry.runMax == runMax){ runEntries.add(entry) }
-            }
-
-            return runEntries
-        }else{
-
-            print("Provider is not connected.\n")
-            return runEntries // will return empty if not connected
-        }
-
-    }
-
     public fun printConstantEntryInfo(){
 
         println("Name: " + this.variation)
-        println("Parent Variation: " + this.parentVariation)
+        //println("Parent Variation: " + this.parentVariation)
         println("Run Min: " + this.runMin)
         println("Run Max: " + this.runMax)
+    }
+
+
+    class RunRange(val min:Int,
+                   val max:Int){
+
+
+
     }
 }
