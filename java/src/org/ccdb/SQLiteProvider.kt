@@ -67,6 +67,14 @@ class SQLiteProvider(connectionString:String): JDBCProvider(connectionString) {
         prsRunRangeMin = con.prepareStatement("SELECT `runRanges`.`runMin` AS `runMin` " +
                 "FROM `runRanges` WHERE `id` = ?")
 
+        prsGetAllData = con.prepareStatement("SELECT * FROM `assignments` " +
+                "USE INDEX (id_UNIQUE) " +
+                "INNER JOIN `runRanges` ON `assignments`.`runRangeId`= `runRanges`.`id` " +
+                "INNER JOIN `constantSets` ON `assignments`.`constantSetId` = `constantSets`.`id` " +
+                "INNER JOIN `typeTables` ON `constantSets`.`constantTypeId` = `typeTables`.`id` " +
+                "WHERE `constantSets`.`constantTypeId` = ? " +
+                "ORDER BY `assignments`.`created` DESC")
+
         postConnect()
     }
 }
